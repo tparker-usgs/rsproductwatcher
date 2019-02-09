@@ -24,6 +24,7 @@ from multiprocessing import Process
 import argparse
 import smtplib
 import http.client
+import re
 
 import ruamel.yaml
 import tomputils.util as tutil
@@ -34,6 +35,9 @@ import requests
 
 
 CONFIG_FILE_ENV = 'PRODUCT_WATCHER_CONFIG'
+MODIS_DATE_RE = r"\.(\d{5}\.\d{4})\.modis"
+MODIS_DATE_STR = "%y%j.%H%M"
+
 
 def send_message(message, ):
     server = smtplib.SMTP(global_config['mailhost'])
@@ -107,14 +111,27 @@ def get_sensor_ages(volcview_status):
 
 
 def get_gina_modis_age():
-    resp = requests.get(global_config['modis_url'])
+    url = global_config['modis_url']
+    resp = requests.get(url)
     if resp.status_code != requests.codes.ok:
-        message = "Subject: "
+        message = "Subject: CRITICAL error at GINA\n\n" \
+                  + "Cannot retrieve file list from {}.".format(url) \
+                  + "Received response code {} ({}).".format(resp.status_code,
+                                  http.client.responses[resp.status_code])
+        send_email(global_config['modis_watchers'], message)
 
-    age = 0
-    for line in resp.text.split():
-        print("line: " + line)
+    pattern = re.compile(MODIS_DATE_RE)
+    most_recent = datetime(2000, 1, 1, 12)
+    for date in re.findall(pattern, resp.text):
+        most_recent = max(most_recent, datetime.strptime(date, MODIS_DATE_STR))
+
+    age = (datetime.utcnow() - most_recent).total_seconds() / (60 * 60)
+
+    logger.info("Most recent MODIS image at GINA: %s (%f hours old)",
+                most_recent, age)
+
     return age
+
 
 def check_modis(age):
     if age < global_config['modis_limit']:
