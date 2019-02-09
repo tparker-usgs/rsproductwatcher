@@ -39,10 +39,6 @@ MODIS_DATE_RE = r"\.(\d{5}\.\d{4})\.modis"
 MODIS_DATE_STR = "%y%j.%H%M"
 
 
-def send_message(message, ):
-    server = smtplib.SMTP(global_config['mailhost'])
-
-
 def get_volcview_status():
     volcview_status = []
     for (server, server_url) in global_config['volcview_url'].items():
@@ -65,6 +61,11 @@ def get_volcview_status():
 
 
 def send_email(recipient, message):
+    if 'mailhost' not in global_config:
+        logger.info("Skipping email, mailhost is undefined.")
+        logger.info(message)
+        return
+    
     logger.info("Sending email to {}".format(recipient))
     server = smtplib.SMTP(global_config['mailhost'])
     server.sendmail(global_config['email_source'], recipient, message)
@@ -144,12 +145,14 @@ def check_modis(age):
                 age, gina_modis_age)
 
     if gina_modis_age > global_config['modis_limit']:
+        logger.info("MODIS data processing problem on avors2")
         message = "Subject: MODIS data processing problem\n\n" \
                   "Most recent MODIS image in volcview is {} hours old, " \
                   "while GINA has more recent data ({} hrs). " \
                   "Check terascan processing on avors2"
         message = message.format(age, gina_modis_age)
     else:
+        logger.info("MODIS data processing problem at GINA")
         message = "Subject: MODIS outage at GINA\n\n" \
                   "The most recent MODIS image at GINA is {} hours old." \
                   " Something wrong up north?\n\nGINA URL: {}"
