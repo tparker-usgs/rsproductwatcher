@@ -32,21 +32,6 @@ import humanize
 import multiprocessing_logging
 import requests
 
-EMAIL_SOURCE = 'avowatcher@usgs.gov'
-MAILHOST = 'smtp.usgs.gov'
-
-VOLCVIEW_URL = {'AVO Volcview': 'https://avo-volcview.wr.usgs.gov',
-                'Menlo Volcview': 'https://volcview.wr.usgs.gov/'}
-VOLCVIEW_STATUS_PATH = '/api/newest'
-VOLCVIEW_WATCHERS = 'tparker@usgs.gov'
-VOLCVIEW_MAX_AGE = 24
-
-MODIS_WATCHERS = 'tparker@usgs.gov'
-MODIS_LIMIT = 0
-MODIS_URL = 'http://nrt-status.gina.alaska.edu/products.txt?action=index' \
-            '&commit=Get+Products&controller=products' \
-            '&processing_levels%5B%5D=tdf&sensors%5B%5D=modis&utf8=%E2%9C%93'
-
 
 def send_message(message, ):
     server = smtplib.SMTP(MAILHOST)
