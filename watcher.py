@@ -33,16 +33,18 @@ import multiprocessing_logging
 import requests
 
 
+CONFIG_FILE_ENV = 'PRODUCT_WATCHER_CONFIG'
+
 def send_message(message, ):
-    server = smtplib.SMTP(MAILHOST)
+    server = smtplib.SMTP(global_config['mailhost'])
 
 
 def get_volcview_status():
     volcview_status = []
-    for server in VOLCVIEW_URL:
+    for (server, server_url) in global_config['volcview_url'].items():
         server_status = {'server': server}
         sensors = {}
-        url = VOLCVIEW_URL[server] + VOLCVIEW_STATUS_PATH
+        url = server_url + global_config['volcview_status_path']
         resp = requests.get(url)
         server_status['response_code'] = resp.status_code
         if resp.status_code == requests.codes.ok:
@@ -60,8 +62,8 @@ def get_volcview_status():
 
 def send_email(recipient, message):
     logger.info("Sending email to {}".format(recipient))
-    server = smtplib.SMTP(MAILHOST)
-    server.sendmail(EMAIL_SOURCE, recipient, message)
+    server = smtplib.SMTP(global_config['mailhost'])
+    server.sendmail(global_config['email_source'], recipient, message)
     server.quit()
 
 
@@ -70,24 +72,25 @@ def check_volcview(volcview_status):
         response_code = server_status['response_code']
         server = server_status['server']
         if response_code != requests.codes.ok:
-            url = VOLCVIEW_URL[server] + VOLCVIEW_STATUS_PATH
+            url = global_config['volcview_url'][server] \
+                  + global_config['volcview_status_path']
             message = "Subject: CRITICAL error on {}\n\n".format(server) \
                       + "Unable to pull status from {}.".format(url) \
                       + " Received response code {} ({})."\
                           .format(response_code,
                                   http.client.responses[response_code])
-            send_email(VOLCVIEW_WATCHERS, message)
+            send_email(global_config['volcview_watchers'], message)
         else:
             logger.info("%s status good, not panicing. (%d)", server,
                         response_code)
             age = min(server_status['sensors'].values())
-            if age > VOLCVIEW_MAX_AGE:
+            if age > global_config['volcview_max_age']:
                 logger.info("{} age: {} hours. That's not good."
                             .format(server_status['server'], age))
                 message = "Subject: CRITICAL error on {}\n\n".format(server) \
                           + "Images aren't making it to {}.".format(server) \
                           + " Most recent image is {} hours old.".format(age)
-                send_email(VOLCVIEW_WATCHERS, message)
+                send_email(global_config['volcview_watchers'], message)
             else:
                 logger.info("{} age: {} hours. No reason to panic."
                             .format(server_status['server'], age))
@@ -135,7 +138,25 @@ def get_sensor_ages(volcview_status):
 
 
 def check_sensors(sensor_ages):
-    check_modis(sensor_ages['MODIS'])
+    pass
+    # check_modis(sensor_ages['MODIS'])
+
+
+def parse_config():
+    config_file = pathlib.Path(tutil.get_env_var(CONFIG_FILE_ENV))
+    yaml = ruamel.yaml.YAML()
+    try:
+        global_config = yaml.load(config_file)
+    except ruamel.yaml.parser.ParserError as e1:
+        logger.error("Cannot parse config file")
+        tutil.exit_with_error(e1)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            logger.error("Cannot read config file %s", config_file)
+            tutil.exit_with_error(e)
+        else:
+            raise
+    return global_config
 
 
 def main():
@@ -145,6 +166,10 @@ def main():
     global logger
     logger = tutil.setup_logging("filefetcher errors")
     multiprocessing_logging.install_mp_handler()
+
+
+    global global_config
+    global_config = tutil.parse_config(tutil.get_env_var(CONFIG_FILE_ENV))
 
     volcview_status = get_volcview_status()
     check_volcview(volcview_status)
