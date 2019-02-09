@@ -78,11 +78,11 @@ def check_volcview(volcview_status):
         if response_code != requests.codes.ok:
             url = global_config['volcview_url'][server] \
                   + global_config['volcview_status_path']
-            message = "Subject: CRITICAL error on {}\n\n".format(server) \
-                      + "Unable to pull status from {}.".format(url) \
-                      + " Received response code {} ({})."\
-                          .format(response_code,
-                                  http.client.responses[response_code])
+            message = "Subject: CRITICAL error on {}\n\n" \
+                      + "Unable to pull status from {}." \
+                      + " Received response code {} ({})."
+            message = message.format(server, url, response_code,
+                                     http.client.responses[response_code])
             send_email(global_config['volcview_watchers'], message)
         else:
             logger.info("%s status good, not panicing. (%d)", server,
@@ -115,9 +115,10 @@ def get_gina_modis_age():
     resp = requests.get(url)
     if resp.status_code != requests.codes.ok:
         message = "Subject: CRITICAL error at GINA\n\n" \
-                  + "Cannot retrieve file list from {}.".format(url) \
-                  + "Received response code {} ({}).".format(resp.status_code,
-                                  http.client.responses[resp.status_code])
+                  + "Cannot retrieve file list from {}." \
+                  + " Received response code {} ({})."
+        message = message.format(url, resp.status_code,
+                                 http.client.responses[resp.status_code])
         send_email(global_config['modis_watchers'], message)
 
     pattern = re.compile(MODIS_DATE_RE)
@@ -136,15 +137,26 @@ def get_gina_modis_age():
 def check_modis(age):
     if age < global_config['modis_limit']:
         logger.info("MODIS is healthy. (%f hrs)", age)
-    else:
-        logger.info("MODIS is unhealthy. (%f hrs)", age)
+        return
 
-        gina_modis_age = get_gina_modis_age()
-        if gina_modis_age < global_config['modis_limit']:
-            message = "Subject: MODIS data processing problem\n\n" \
-                      "Most recent MODIS image in volcview is {} hours old." \
-                      " GINA has more recent data ({} hrs). Processing problem?."
-            send_email(global_config['modis_watchers'], message.format(age, gina_modis_age))
+    gina_modis_age = get_gina_modis_age()
+    logger.info("MODIS is unhealthy. volcview: %f hours; GINA: %f hours",
+                age, gina_modis_age)
+
+    if gina_modis_age > global_config['modis_limit']:
+        message = "Subject: MODIS data processing problem\n\n" \
+                  "Most recent MODIS image in volcview is {} hours old, " \
+                  "while GINA has more recent data ({} hrs). " \
+                  "Check terascan processing on avors2"
+        message = message.format(age, gina_modis_age)
+    else:
+        message = "Subject: MODIS outage at GINA\n\n" \
+                  "The most recent MODIS image at GINA is {} hours old." \
+                  " Something wrong up north?\n\nGINA URL: {}"
+        message = message.format(gina_modis_age,
+                                 global_config['modis_url'])
+
+    send_email(global_config['modis_watchers'], message)
 
 
 def check_sensors(sensor_ages):
@@ -175,7 +187,6 @@ def main():
     global logger
     logger = tutil.setup_logging("filefetcher errors")
     multiprocessing_logging.install_mp_handler()
-
 
     global global_config
     global_config = tutil.parse_config(tutil.get_env_var(CONFIG_FILE_ENV))
