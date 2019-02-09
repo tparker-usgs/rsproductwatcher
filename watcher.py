@@ -106,40 +106,32 @@ def get_sensor_ages(volcview_status):
     return sensor_ages
 
 
-# def get_gina_modis_age():
-#     resp = requests.get(MODIS_URL)
-#     server_status['response_code'] = resp.status_code
-#     if resp.status_code != requests.codes.ok:
-#         message = "Subject: "
-#         status = resp.json()
-#         for image in status:
-#             sensor = image['data_type_name']
-#             age = float(image['age_hours'])
-#             if sensor not in sensors or age < sensors[sensor]:
-#                 sensors[sensor] = age
-#     server_status['sensors'] = sensors
-#     volcview_status.append(server_status)
-#
-#
-# def check_modis(age):
-#     if age < MODIS_LIMIT:
-#         logger.info("MODIS is healthy. (%f hrs)", age)
-#     else:
-#         logger.info("MODIS is unhealthy. (%f hrs)", age)
-#
-#         gina_modis_age = get_gina_modis_age()
-#         if gina_modis_age < MODIS_LIMIT:
-#         message = "Subject: MODIS data processing problem\n\n" \
-#                   "Most recent MODIS image in volcview is {} hours old." \
-#                   " GINA has more recent data ({} hrs). Processing problem?."
-#         send_email(MODIS_WATCHERS, message.format(age, gina_modis_age))
+def get_gina_modis_age():
+    resp = requests.get(global_config['modis_url'])
+    if resp.status_code != requests.codes.ok:
+        message = "Subject: "
 
+    age = 0
+    for line in resp.text.split():
+        print("line: " + line)
+    return age
 
+def check_modis(age):
+    if age < global_config['modis_limit']:
+        logger.info("MODIS is healthy. (%f hrs)", age)
+    else:
+        logger.info("MODIS is unhealthy. (%f hrs)", age)
+
+        gina_modis_age = get_gina_modis_age()
+        if gina_modis_age < global_config['modis_limit']:
+            message = "Subject: MODIS data processing problem\n\n" \
+                      "Most recent MODIS image in volcview is {} hours old." \
+                      " GINA has more recent data ({} hrs). Processing problem?."
+            send_email(global_config['modis_watchers'], message.format(age, gina_modis_age))
 
 
 def check_sensors(sensor_ages):
-    pass
-    # check_modis(sensor_ages['MODIS'])
+    check_modis(sensor_ages['MODIS'])
 
 
 def parse_config():
