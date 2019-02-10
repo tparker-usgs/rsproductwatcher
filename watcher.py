@@ -41,6 +41,9 @@ MODIS_DATE_STR = "%y%j.%H%M"
 AVHRR_DATE_RE = r"\.(\d{5}\.\d{4})/n"
 AVHRR_DATE_STR = "%y%j.%H%M"
 
+VIIRS_DATE_RE = r"(_d\d{8}_t\d{6})\d_e"
+VIIRS_DATE_STR = "_d%Y%m%d_t%H%M%S"
+
 
 def get_volcview_status():
     volcview_status = []
@@ -207,9 +210,57 @@ def check_avhrr(volcview_age):
     send_email(global_config['avhrr_watchers'], message)
 
 
+def get_gina_viirs_age():
+    url = global_config['viirs_url']
+    resp = requests.get(url)
+    if resp.status_code != requests.codes.ok:
+        message = "Subject: CRITICAL error at GINA\n\n" \
+                  + "Cannot retrieve file list from {}." \
+                  + " Received response code {} ({})."
+        message = message.format(url, resp.status_code,
+                                 http.client.responses[resp.status_code])
+        send_email(global_config['viirs_watchers'], message)
+
+    pattern = re.compile(VIIRS_DATE_RE)
+    most_recent = datetime(2000, 1, 1, 12)
+    for date in re.findall(pattern, resp.text):
+        most_recent = max(most_recent, datetime.strptime(date, VIIRS_DATE_STR))
+
+    age = (datetime.utcnow() - most_recent).total_seconds() / (60 * 60)
+
+    logger.info("Most recent VIIRS image at GINA: %s (%f hours old)",
+                most_recent, age)
+
+    return age
+
+
+def check_viirs(volcview_age):
+    if volcview_age < global_config['viirs_limit']:
+        logger.info("VIIRS is healthy. (%f hrs)", volcview_age)
+        return
+
+    gina_age = get_gina_viirs_age()
+    if gina_age > global_config['modis_limit']:
+        logger.info("VIIRS data processing problem at GINA")
+        message = "Subject: VIIRS outage at GINA\n\n" \
+                  "The most recent VIIRS image at GINA is {} hours old." \
+                  " Something wrong up north?\n\nGINA URL: {}"
+        message = message.format(gina_age, global_config['viirs_url'])
+    else:
+        logger.info("VIIRS data processing problem on avors2")
+        message = "Subject: VIIRS data processing problem\n\n" \
+                  "Most recent VIIRS image in volcview is {} hours old, " \
+                  "while GINA has more recent data ({} hrs). " \
+                  "Check satpy processing on avors1"
+        message = message.format(volcview_age, gina_age)
+
+    send_email(global_config['viirs_watchers'], message)
+
+
 def check_sensors(sensor_ages):
     check_modis(sensor_ages['MODIS'])
     check_avhrr(sensor_ages['AVHRR'])
+    check_viirs(sensor_ages['VIIRS'])
 
 
 def parse_config():
