@@ -1,0 +1,7 @@
+# Keep config updated
+*/5 * * * * configupdater --url=$CONFIGUPDATER_URL --user=$USER --passwd=$PASSWD $CONFIGUPDATER_CONFIG
+
+0 0 * * * watcher.py > $LOG_DIR/watcher`date -u "+%Y%m%d:%H"` 2>&1
+
+# cleanup logs
+0 0 * * * find $LOG_DIR -name 'watcher_*' -mtime +14 -exec rm {} \;
