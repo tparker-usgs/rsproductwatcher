@@ -5,7 +5,7 @@
 FROM python:3.7
 
 WORKDIR /usr/share/ca-certificates/extra
-COPY DOIRootCA2.cer DOIRootCA2.crt
+COPY support/DOIRootCA2.cer DOIRootCA2.crt
 RUN echo "extra/DOIRootCA2.crt" >> /etc/ca-certificates.conf && update-ca-certificates
 
 ENV SUPERCRONIC_URL=https://github.com/aptible/supercronic/releases/download/v0.1.6/supercronic-linux-amd64 \
