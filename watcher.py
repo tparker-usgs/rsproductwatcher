@@ -279,7 +279,7 @@ def main():
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     global logger
-    logger = tutil.setup_logging("filefetcher errors")
+    logger = tutil.setup_logging("rsproductwatcher - watcher errors")
 
     global global_config
     global_config = tutil.parse_config(tutil.get_env_var(CONFIG_FILE_ENV))
