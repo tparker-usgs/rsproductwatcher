@@ -106,8 +106,7 @@ def get_sensor_ages(volcview_status):
     return sensor_ages
 
 
-def get_gina_modis_age():
-    url = global_config['modis_url']
+def get_gina_list(url, watchers):
     resp = requests.get(url)
     if resp.status_code != requests.codes.ok:
         message = "Subject: CRITICAL error at GINA\n\n" \
@@ -115,11 +114,21 @@ def get_gina_modis_age():
                   + " Received response code {} ({})."
         message = message.format(url, resp.status_code,
                                  http.client.responses[resp.status_code])
-        send_email(global_config['modis_watchers'], message)
+        send_email(watchers, message)
+
+    return resp.text
+
+
+def get_gina_modis_age():
+    file_list = get_gina_list(global_config['modis_url'],
+                              global_config['modis_watchers'])
+
+    if file_list is None:
+        return
 
     pattern = re.compile(MODIS_DATE_RE)
     most_recent = datetime(2000, 1, 1, 12)
-    for date in re.findall(pattern, resp.text):
+    for date in re.findall(pattern, file_list):
         most_recent = max(most_recent, datetime.strptime(date, MODIS_DATE_STR))
 
     age = (datetime.utcnow() - most_recent).total_seconds() / (60 * 60)
@@ -154,19 +163,15 @@ def check_modis(volcview_age):
 
 
 def get_gina_avhrr_age():
-    url = global_config['avhrr_url']
-    resp = requests.get(url)
-    if resp.status_code != requests.codes.ok:
-        message = "Subject: CRITICAL error at GINA\n\n" \
-                  + "Cannot retrieve file list from {}." \
-                  + " Received response code {} ({})."
-        message = message.format(url, resp.status_code,
-                                 http.client.responses[resp.status_code])
-        send_email(global_config['modis_watchers'], message)
+    file_list = get_gina_list(global_config['avhrr_url'],
+                              global_config['avhrr_watchers'])
+
+    if file_list is None:
+        return
 
     pattern = re.compile(AVHRR_DATE_RE)
     most_recent = datetime(2000, 1, 1, 12)
-    for date in re.findall(pattern, resp.text):
+    for date in re.findall(pattern, file_list):
         most_recent = max(most_recent, datetime.strptime(date, AVHRR_DATE_STR))
 
     age = (datetime.utcnow() - most_recent).total_seconds() / (60 * 60)
@@ -201,19 +206,16 @@ def check_avhrr(volcview_age):
 
 
 def get_gina_viirs_age():
-    url = global_config['viirs_url']
-    resp = requests.get(url)
-    if resp.status_code != requests.codes.ok:
-        message = "Subject: CRITICAL error at GINA\n\n" \
-                  + "Cannot retrieve file list from {}." \
-                  + " Received response code {} ({})."
-        message = message.format(url, resp.status_code,
-                                 http.client.responses[resp.status_code])
-        send_email(global_config['viirs_watchers'], message)
+    file_list = get_gina_list(global_config['viirs_url'],
+                              global_config['viirs_watchers'])
+
+    if file_list is None:
+        return
+
 
     pattern = re.compile(VIIRS_DATE_RE)
     most_recent = datetime(2000, 1, 1, 12)
-    for date in re.findall(pattern, resp.text):
+    for date in re.findall(pattern, file_list):
         most_recent = max(most_recent, datetime.strptime(date, VIIRS_DATE_STR))
 
     age = (datetime.utcnow() - most_recent).total_seconds() / (60 * 60)
