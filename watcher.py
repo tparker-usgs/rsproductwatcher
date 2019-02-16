@@ -20,7 +20,6 @@ import re
 
 import ruamel.yaml
 import tomputils.util as tutil
-import multiprocessing_logging
 import requests
 
 
@@ -277,7 +276,6 @@ def main():
 
     global logger
     logger = tutil.setup_logging("filefetcher errors")
-    multiprocessing_logging.install_mp_handler()
 
     global global_config
     global_config = tutil.parse_config(tutil.get_env_var(CONFIG_FILE_ENV))
