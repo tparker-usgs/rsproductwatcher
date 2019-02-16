@@ -18,7 +18,7 @@ RUN curl -fsSLO "$SUPERCRONIC_URL" \
  && mv "$SUPERCRONIC" "/usr/local/bin/${SUPERCRONIC}" \
  && ln -s "/usr/local/bin/${SUPERCRONIC}" /usr/local/bin/supercronic
 
-ENV CONFIGUPDATER_CONFIG=/tmp/configupdater.yaml
+RUN pip install --no-cache-dir -r requirements.txt # 1
 
 WORKDIR /app/rsproductwatcher
 COPY support/cron-rsproductwatcher .
@@ -28,4 +28,3 @@ ADD watcher.py .
 RUN chmod 755 *.py
 
 CMD ["/usr/local/bin/supercronic","/app/rsproductwatcher/cron-rsproductwatcher"]
-
