@@ -9,27 +9,17 @@
 
 """ Keep an eye on RS product generation."""
 
-from datetime import timedelta, datetime
-from string import Template
+from datetime import datetime
 import signal
 import logging
-import os
-import sys
-import socket
-import struct
 import pathlib
-from urllib.parse import urlparse
 import errno
-from multiprocessing import Process
-import argparse
 import smtplib
 import http.client
 import re
 
 import ruamel.yaml
 import tomputils.util as tutil
-import pycurl
-import humanize
 import multiprocessing_logging
 import requests
 
