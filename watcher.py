@@ -56,13 +56,17 @@ def get_volcview_status():
 
 
 def send_email(recipient, message):
-    if 'mailhost' not in global_config:
+    mailhost = tutil.get_env_var('MAILHOST', None)
+    if 'mailhost' in global_config:
+        mailhost = global_config['mailhost']
+
+    if not mailhost:
         logger.info("Skipping email, mailhost is undefined.")
         logger.info(message)
         return
 
     logger.info("Sending email to {}".format(recipient))
-    server = smtplib.SMTP(global_config['mailhost'])
+    server = smtplib.SMTP(mailhost)
     server.sendmail(global_config['email_source'], recipient, message)
     server.quit()
 
