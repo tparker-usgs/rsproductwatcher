@@ -1,5 +1,5 @@
 # Keep config updated
-*/5 * * * * configupdater --url=$CONFIGUPDATER_URL --user=$USER --passwd=$PASSWD $CONFIGUPDATER_CONFIG
+*/5 * * * * configupdater
 
 0 0 * * * watcher.py > $LOG_DIR/watcher`date -u "+%Y%m%d:%H"` 2>&1
 
