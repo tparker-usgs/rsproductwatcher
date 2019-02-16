@@ -212,7 +212,6 @@ def get_gina_viirs_age():
     if file_list is None:
         return
 
-
     pattern = re.compile(VIIRS_DATE_RE)
     most_recent = datetime(2000, 1, 1, 12)
     for date in re.findall(pattern, file_list):
