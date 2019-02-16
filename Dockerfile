@@ -18,9 +18,11 @@ RUN curl -fsSLO "$SUPERCRONIC_URL" \
  && mv "$SUPERCRONIC" "/usr/local/bin/${SUPERCRONIC}" \
  && ln -s "/usr/local/bin/${SUPERCRONIC}" /usr/local/bin/supercronic
 
-RUN pip install --no-cache-dir -r requirements.txt # 1
 
 WORKDIR /app/rsproductwatcher
+ADD requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt # 1
+
 COPY support/cron-rsproductwatcher .
 
 ADD VERSION .
