@@ -29,7 +29,7 @@ setup(
     setup_requires=['pytest-runner'],
     entry_points={
         'console_scripts': [
-            'watcher = rsproductwatcher.watcher:main'
+            'watcher = rsproductwatcher.watcher_console:main'
         ]
     }
 )
