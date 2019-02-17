@@ -23,4 +23,7 @@ WORKDIR /app/build
 ADD . .
 RUN python setup.py install
 
+WORKDIR /app/rsproductwatcher
+COPY support/cron-rsproductwatcher .
+
 CMD ["/usr/local/bin/supercronic","/app/rsproductwatcher/cron-rsproductwatcher"]
