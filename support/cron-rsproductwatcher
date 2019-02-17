@@ -1,7 +1,4 @@
 # Keep config updated
 */5 * * * * configupdater
 
-0 0 * * * watcher.py
-
-# cleanup logs
-0 0 * * * find $LOG_DIR -name 'watcher_*' -mtime +14 -exec rm {} \;
+0 0 * * * watcher
