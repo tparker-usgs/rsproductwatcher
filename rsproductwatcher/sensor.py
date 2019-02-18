@@ -55,7 +55,6 @@ class Sensor(object):
         return age
 
 
-
 class AvhrrSensor(Sensor):
     """ AVHRR """
 

@@ -13,7 +13,7 @@
 import tomputils.util as tutil
 from rsproductwatcher import logger
 import smtplib
-import os
+
 
 def send_email(recipient, message):
         mailhost = tutil.get_env_var('MAILHOST', default="unset")
@@ -24,5 +24,6 @@ def send_email(recipient, message):
         else:
             logger.info("Sending email to {}".format(recipient))
             server = smtplib.SMTP(mailhost)
-            server.sendmail(tutil.get_env_var('LOG_SENDER'), recipient, message)
+            server.sendmail(tutil.get_env_var('LOG_SENDER'), recipient,
+                            message)
             server.quit()

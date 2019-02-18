@@ -9,14 +9,11 @@
 
 """ Keep an eye on RS product generation."""
 
-from datetime import datetime
 import signal
 import logging
 import pathlib
 import errno
-import smtplib
 import http.client
-import re
 
 import ruamel.yaml
 import tomputils.util as tutil
