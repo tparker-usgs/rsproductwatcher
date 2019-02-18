@@ -16,14 +16,14 @@ import smtplib
 
 
 def send_email(recipient, message):
-        mailhost = tutil.get_env_var('MAILHOST', default="unset")
+    mailhost = tutil.get_env_var('MAILHOST', default="unset")
 
-        if mailhost == "unset":
-            logger.info("Skipping email, mailhost is undefined.")
-            logger.info(message)
-        else:
-            logger.info("Sending email to {}".format(recipient))
-            server = smtplib.SMTP(mailhost)
-            server.sendmail(tutil.get_env_var('LOG_SENDER'), recipient,
-                            message)
-            server.quit()
+    if mailhost == "unset":
+        logger.info("Skipping email, mailhost is undefined.")
+        logger.info(message)
+    else:
+        logger.info("Sending email to {}".format(recipient))
+        server = smtplib.SMTP(mailhost)
+        server.sendmail(tutil.get_env_var('LOG_SENDER'), recipient,
+                        message)
+        server.quit()
