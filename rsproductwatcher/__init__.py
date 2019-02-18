@@ -15,5 +15,9 @@ Keep an eye on remote sensing product generation.
     http://creativecommons.org/publicdomain/zero/1.0/
 """
 
-
+__all__ = ['Sensor', 'sensor_factory']
 __version__ = "1.0.0"
+
+import tomputils.util as tutil
+
+logger = tutil.setup_logging("rsproductwatcher - watcher errors")

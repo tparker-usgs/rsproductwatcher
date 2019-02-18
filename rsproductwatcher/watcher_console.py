@@ -21,17 +21,11 @@ import re
 import ruamel.yaml
 import tomputils.util as tutil
 import requests
-
+from rsproductwatcher.sensor import sensor_factory
+from rsproductwatcher import logger
+from rsproductwatcher.util import send_email
 
 CONFIG_FILE_ENV = 'PRODUCT_WATCHER_CONFIG'
-MODIS_DATE_RE = r"\.(\d{5}\.\d{4})\.modis"
-MODIS_DATE_STR = "%y%j.%H%M"
-
-AVHRR_DATE_RE = r"\.(\d{5}\.\d{4})/n"
-AVHRR_DATE_STR = "%y%j.%H%M"
-
-VIIRS_DATE_RE = r"(_d\d{8}_t\d{6})\d_e"
-VIIRS_DATE_STR = "_d%Y%m%d_t%H%M%S"
 
 
 def get_volcview_status():
@@ -53,22 +47,6 @@ def get_volcview_status():
         volcview_status.append(server_status)
 
     return volcview_status
-
-
-def send_email(recipient, message):
-    mailhost = tutil.get_env_var('MAILHOST', None)
-    if 'mailhost' in global_config:
-        mailhost = global_config['mailhost']
-
-    if not mailhost:
-        logger.info("Skipping email, mailhost is undefined.")
-        logger.info(message)
-        return
-
-    logger.info("Sending email to {}".format(recipient))
-    server = smtplib.SMTP(mailhost)
-    server.sendmail(global_config['email_source'], recipient, message)
-    server.quit()
 
 
 def check_volcview(volcview_status):
@@ -109,152 +87,42 @@ def get_sensor_ages(volcview_status):
     return sensor_ages
 
 
-def get_gina_list(url, watchers):
-    resp = requests.get(url)
-    if resp.status_code != requests.codes.ok:
-        message = "Subject: CRITICAL error at GINA\n\n" \
-                  + "Cannot retrieve file list from {}." \
-                  + " Received response code {} ({})."
-        message = message.format(url, resp.status_code,
-                                 http.client.responses[resp.status_code])
-        send_email(watchers, message)
-
-    return resp.text
-
-
-def get_gina_modis_age():
-    file_list = get_gina_list(global_config['modis_url'],
-                              global_config['modis_watchers'])
-
-    if file_list is None:
+def check_sensor(sensor_config, volcview_age):
+    if sensor_config['disabled']:
+        logger.info("Sensor %s is disabled, skipping.", sensor_config['name'])
         return
 
-    pattern = re.compile(MODIS_DATE_RE)
-    most_recent = datetime(2000, 1, 1, 12)
-    for date in re.findall(pattern, file_list):
-        most_recent = max(most_recent, datetime.strptime(date, MODIS_DATE_STR))
-
-    age = (datetime.utcnow() - most_recent).total_seconds() / (60 * 60)
-
-    logger.info("Most recent MODIS image at GINA: %s (%f hours old)",
-                most_recent, age)
-
-    return age
-
-
-def check_modis(volcview_age):
-    if volcview_age < global_config['modis_limit']:
-        logger.info("MODIS is healthy. (%f hrs)", volcview_age)
+    if volcview_age < sensor_config['limit']:
+        logger.info("%s is healthy. (%f hrs)", sensor_config['name'],
+                    volcview_age)
         return
 
-    gina_age = get_gina_modis_age()
-    if gina_age > global_config['modis_limit']:
-        logger.info("MODIS data processing problem at GINA")
-        message = "Subject: MODIS outage at GINA\n\n" \
-                  "The most recent MODIS image at GINA is {} hours old." \
-                  " Something wrong up north?\n\nGINA URL: {}"
-        message = message.format(gina_age, global_config['modis_url'])
+    sensor = sensor_factory(sensor_config)
+    upstream_age = sensor.get_upstream_age()
+    if upstream_age > sensor_config['limit']:
+        logger.info("%s upstream data processing problem",
+                    sensor_config['name'])
+        message = "Subject: {name} outage upstream\n\n" \
+                  "The most recent {name} image upstream is {age} hours old." \
+                  "\n\nupstream source: {source}"
+        message = message.format(name=sensor_config['name'], age=upstream_age,
+                                 source=sensor_config['source'])
     else:
-        logger.info("MODIS data processing problem on avors2")
-        message = "Subject: MODIS data processing problem\n\n" \
-                  "Most recent MODIS image in volcview is {} hours old, " \
-                  "while GINA has more recent data ({} hrs). " \
-                  "Check terascan processing on avors2"
-        message = message.format(volcview_age, gina_age)
+        logger.info("%s data processing problem on avors2",
+                    sensor_config['name'])
+        message = "Subject: {name} data processing problem\n\n" \
+                  "Most recent {name} image in volcview is {age} hours old, " \
+                  "while there is more recent data upstream " \
+                  "({upstream_age} hrs). "
+        message = message.format(name=sensor_config['name'], age=volcview_age,
+                                 upstream_age=upstream_age)
 
-    send_email(global_config['modis_watchers'], message)
-
-
-def get_gina_avhrr_age():
-    file_list = get_gina_list(global_config['avhrr_url'],
-                              global_config['avhrr_watchers'])
-
-    if file_list is None:
-        return
-
-    pattern = re.compile(AVHRR_DATE_RE)
-    most_recent = datetime(2000, 1, 1, 12)
-    for date in re.findall(pattern, file_list):
-        most_recent = max(most_recent, datetime.strptime(date, AVHRR_DATE_STR))
-
-    age = (datetime.utcnow() - most_recent).total_seconds() / (60 * 60)
-
-    logger.info("Most recent AVHRR image at GINA: %s (%f hours old)",
-                most_recent, age)
-
-    return age
-
-
-def check_avhrr(volcview_age):
-    if volcview_age < global_config['avhrr_limit']:
-        logger.info("AVHRR is healthy. (%f hrs)", volcview_age)
-        return
-
-    gina_age = get_gina_avhrr_age()
-    if gina_age > global_config['modis_limit']:
-        logger.info("AVHRR data processing problem at GINA")
-        message = "Subject: AVHRR outage at GINA\n\n" \
-                  "The most recent AVHRR image at GINA is {} hours old." \
-                  " Something wrong up north?\n\nGINA URL: {}"
-        message = message.format(gina_age, global_config['avhrr_url'])
-    else:
-        logger.info("AVHRR data processing problem on avors2")
-        message = "Subject: AVHRR data processing problem\n\n" \
-                  "Most recent AVHRR image in volcview is {} hours old, " \
-                  "while GINA has more recent data ({} hrs). " \
-                  "Check terascan processing on avors2"
-        message = message.format(volcview_age, gina_age)
-
-    send_email(global_config['avhrr_watchers'], message)
-
-
-def get_gina_viirs_age():
-    file_list = get_gina_list(global_config['viirs_url'],
-                              global_config['viirs_watchers'])
-
-    if file_list is None:
-        return
-
-    pattern = re.compile(VIIRS_DATE_RE)
-    most_recent = datetime(2000, 1, 1, 12)
-    for date in re.findall(pattern, file_list):
-        most_recent = max(most_recent, datetime.strptime(date, VIIRS_DATE_STR))
-
-    age = (datetime.utcnow() - most_recent).total_seconds() / (60 * 60)
-
-    logger.info("Most recent VIIRS image at GINA: %s (%f hours old)",
-                most_recent, age)
-
-    return age
-
-
-def check_viirs(volcview_age):
-    if volcview_age < global_config['viirs_limit']:
-        logger.info("VIIRS is healthy. (%f hrs)", volcview_age)
-        return
-
-    gina_age = get_gina_viirs_age()
-    if gina_age > global_config['modis_limit']:
-        logger.info("VIIRS data processing problem at GINA")
-        message = "Subject: VIIRS outage at GINA\n\n" \
-                  "The most recent VIIRS image at GINA is {} hours old." \
-                  " Something wrong up north?\n\nGINA URL: {}"
-        message = message.format(gina_age, global_config['viirs_url'])
-    else:
-        logger.info("VIIRS data processing problem on avors2")
-        message = "Subject: VIIRS data processing problem\n\n" \
-                  "Most recent VIIRS image in volcview is {} hours old, " \
-                  "while GINA has more recent data ({} hrs). " \
-                  "Check satpy processing on avors1"
-        message = message.format(volcview_age, gina_age)
-
-    send_email(global_config['viirs_watchers'], message)
+    send_email(sensor_config['watchers'], message)
 
 
 def check_sensors(sensor_ages):
-    check_modis(sensor_ages['MODIS'])
-    check_avhrr(sensor_ages['AVHRR'])
-    check_viirs(sensor_ages['VIIRS'])
+    for sensor in global_config['sensors']:
+        check_sensor(sensor, sensor_ages[sensor['name']])
 
 
 def parse_config():
@@ -277,9 +145,6 @@ def parse_config():
 def main():
     # let ctrl-c work as it should.
     signal.signal(signal.SIGINT, signal.SIG_DFL)
-
-    global logger
-    logger = tutil.setup_logging("rsproductwatcher - watcher errors")
 
     global global_config
     global_config = tutil.parse_config(tutil.get_env_var(CONFIG_FILE_ENV))
