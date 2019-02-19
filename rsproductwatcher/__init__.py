@@ -16,7 +16,7 @@ Keep an eye on remote sensing product generation.
 """
 
 __all__ = ['Sensor', 'sensor_factory']
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 import tomputils.util as tutil
 
