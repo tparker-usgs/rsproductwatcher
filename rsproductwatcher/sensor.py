@@ -17,6 +17,7 @@ import requests
 from rsproductwatcher.util import send_email
 from rsproductwatcher import logger
 
+
 MODIS_DATE_RE = r"\.(\d{5}\.\d{4})\.modis"
 MODIS_DATE_STR = "%y%j.%H%M"
 
