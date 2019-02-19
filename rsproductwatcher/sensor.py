@@ -55,27 +55,6 @@ class Sensor(object):
         return age
 
 
-class AvhrrSensor(Sensor):
-    """ AVHRR """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(AVHRR_DATE_RE, AVHRR_DATE_STR, *args, **kwargs)
-
-
-class ModisSensor(Sensor):
-    """ MODIS """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(MODIS_DATE_RE, MODIS_DATE_STR, *args, **kwargs)
-
-
-class ViirsSensor(Sensor):
-    """ VIIRS """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(VIIRS_DATE_RE, VIIRS_DATE_STR, *args, **kwargs)
-
-
 def get_gina_list(url, watchers):
     resp = requests.get(url)
     if resp.status_code != requests.codes.ok:
@@ -91,8 +70,8 @@ def get_gina_list(url, watchers):
 
 def sensor_factory(sensor):
     if sensor['name'] == 'VIIRS':
-        return ViirsSensor(sensor)
+        return Sensor(VIIRS_DATE_RE, VIIRS_DATE_STR, sensor)
     elif sensor['name'] == 'AVHRR':
-        return AvhrrSensor(sensor)
+        return Sensor(AVHRR_DATE_RE, AVHRR_DATE_STR, sensor)
     elif sensor['name'] == 'MODIS':
-        return ModisSensor(sensor)
+        return Sensor(MODIS_DATE_RE, MODIS_DATE_STR, sensor)
