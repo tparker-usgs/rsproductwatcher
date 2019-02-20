@@ -26,7 +26,10 @@ setup(
     install_requires=[
         'tomputils>=1.12.13'
     ],
-    setup_requires=['pytest-runner'],
+    setup_requires=[
+        'pytest-runner',
+        'tomputils>=1.12.13'
+    ],
     entry_points={
         'console_scripts': [
             'watcher = rsproductwatcher.watcher_console:main'
