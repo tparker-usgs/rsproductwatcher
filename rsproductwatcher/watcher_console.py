@@ -25,22 +25,29 @@ from rsproductwatcher.util import send_email
 CONFIG_FILE_ENV = 'PRODUCT_WATCHER_CONFIG'
 
 
+def volcview_sensor_ages(status):
+    sensors = {}
+    for image in status:
+        sensor = image['data_type_name']
+        age = float(image['age_hours'])
+        if sensor not in sensors or age < sensors[sensor]:
+            sensors[sensor] = age
+
+    return sensors
+
+
 def get_volcview_status():
     volcview_status = []
     for (server, server_url) in global_config['volcview_url'].items():
         server_status = {'server': server}
-        sensors = {}
         url = server_url + global_config['volcview_status_path']
         resp = requests.get(url)
         server_status['response_code'] = resp.status_code
         if resp.status_code == requests.codes.ok:
-            status = resp.json()
-            for image in status:
-                sensor = image['data_type_name']
-                age = float(image['age_hours'])
-                if sensor not in sensors or age < sensors[sensor]:
-                    sensors[sensor] = age
-        server_status['sensors'] = sensors
+            server_status['sensors'] = volcview_sensor_ages(resp.json())
+        else:
+            server_status['sensors'] = {}
+
         volcview_status.append(server_status)
 
     return volcview_status
@@ -139,6 +146,15 @@ def parse_config():
     return global_config
 
 
+def volcview_working(volcview_status):
+    working = False
+    for server_status in volcview_status:
+        if server_status['response_code'] == requests.codes.ok:
+            working = True
+
+    return working
+
+
 def main():
     # let ctrl-c work as it should.
     signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -149,8 +165,9 @@ def main():
     volcview_status = get_volcview_status()
     check_volcview(volcview_status)
 
-    sensor_ages = get_sensor_ages(volcview_status)
-    check_sensors(sensor_ages)
+    if volcview_working(volcview_status):
+        sensor_ages = get_sensor_ages(volcview_status)
+        check_sensors(sensor_ages)
 
     logger.debug("That's all for now, bye.")
     logging.shutdown()
