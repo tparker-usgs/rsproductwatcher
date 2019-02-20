@@ -24,7 +24,7 @@ setup(
         "License :: CC0 1.0 Universal (CC0 1.0) Public Domain Dedication",
     ],
     install_requires=[
-        'tomputils>=1.12.4'
+        'tomputils>=1.12.13'
     ],
     setup_requires=['pytest-runner'],
     entry_points={
