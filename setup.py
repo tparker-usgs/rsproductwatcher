@@ -13,7 +13,7 @@ with open(os.path.join(here, 'requests', '__version__.py'), 'r', 'utf-8') as f:
 
 setup(
     name="rsproductwatcher",
-    version=version['__version__']
+    version=version['__version__'],
     author="Tom Parker",
     author_email="tparker@usgs.gov",
     description=(DOCSTRING[1]),
