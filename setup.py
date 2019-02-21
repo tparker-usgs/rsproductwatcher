@@ -4,13 +4,16 @@ rsproductwatcher -- Keep an eye on remote sensing product generation
 """
 
 from setuptools import setup, find_packages
-from rsproductwatcher import __version__
 
 DOCSTRING = __doc__.split("\n")
 
+version = {}
+with open(os.path.join(here, 'requests', '__version__.py'), 'r', 'utf-8') as f:
+    exec(f.read(), version)
+
 setup(
     name="rsproductwatcher",
-    version=__version__,
+    version=version['__version__']
     author="Tom Parker",
     author_email="tparker@usgs.gov",
     description=(DOCSTRING[1]),
@@ -27,8 +30,7 @@ setup(
         'tomputils>=1.12.13'
     ],
     setup_requires=[
-        'pytest-runner',
-        'tomputils>=1.12.13'
+        'pytest-runner'
     ],
     entry_points={
         'console_scripts': [
