@@ -19,3 +19,4 @@ import tomputils.util as tutil
 from rsproductwatcher.version import __version__
 
 logger = tutil.setup_logging("rsproductwatcher - errors")
+__all__ = ['__version__']
