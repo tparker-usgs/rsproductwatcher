@@ -4,10 +4,10 @@ rsproductwatcher -- Keep an eye on remote sensing product generation
 """
 
 from setuptools import setup, find_packages
+import os
 
 DOCSTRING = __doc__.split("\n")
 
-import os
 version = {}
 here = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(here, 'requests', '__version__.py'), 'r', 'utf-8') as f:
