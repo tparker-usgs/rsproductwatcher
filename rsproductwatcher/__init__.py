@@ -16,5 +16,6 @@ Keep an eye on remote sensing product generation.
 """
 
 import tomputils.util as tutil
+from rsproductwatcher.version import __version__
 
 logger = tutil.setup_logging("rsproductwatcher - errors")
